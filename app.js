@@ -8,7 +8,23 @@
 
   const SIZE = 1000;
   const QUIET = 4;
-  const opts = { shape: 'square', corner: 'square', style: 'color' };
+  const opts = { mode: 'photo', shape: 'square', corner: 'square', style: 'color' };
+  const sampler = document.createElement('canvas');
+  const sctx = sampler.getContext('2d', { willReadFrequently: true });
+
+  // push a color dark enough (or light enough) for scanners, keeping its hue
+  function adjust(r, g, b, dark) {
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (dark && lum > 0.36) {
+      const k = 0.36 / lum;
+      return `rgb(${r * k | 0},${g * k | 0},${b * k | 0})`;
+    }
+    if (!dark && lum < 0.74) {
+      const t = (0.74 - lum) / (1 - lum);
+      return `rgb(${r + (255 - r) * t | 0},${g + (255 - g) * t | 0},${b + (255 - b) * t | 0})`;
+    }
+    return `rgb(${r},${g},${b})`;
+  }
   const PALETTES = {
     color: { dark: '#111111', light: '#ffffff', filter: '' },
     mono: { dark: '#111111', light: '#ffffff', filter: ' grayscale(1)' },
@@ -126,30 +142,52 @@
 
     const s = Math.max(area / img.width, area / img.height) * (zoomEl.value / 100);
     const w = img.width * s, h = img.height * s;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(off, off, area, area);
-    ctx.clip();
-    ctx.filter = `contrast(${contrastEl.value}%)${pal.filter}`;
-    ctx.drawImage(img, off + (area - w) / 2 + pan.x, off + (area - h) / 2 + pan.y, w, h);
-    ctx.restore();
-    ctx.filter = 'none';
+    const imgX = (area - w) / 2 + pan.x, imgY = (area - h) / 2 + pan.y;
+    const filter = `contrast(${contrastEl.value}%)${pal.filter}`;
 
-    const dot = cell * (dotEl.value / 100);
-    const pad = (cell - dot) / 2;
-    const washDark = 'rgba(0,0,0,0.28)';
-    const washLight = 'rgba(255,255,255,0.32)';
+    if (opts.mode === 'photo') {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(off, off, area, area);
+      ctx.clip();
+      ctx.filter = filter;
+      ctx.drawImage(img, off + imgX, off + imgY, w, h);
+      ctx.restore();
+      ctx.filter = 'none';
 
-    for (let r = 0; r < n; r++) {
-      for (let c = 0; c < n; c++) {
-        if (inFinder(r, c, n)) continue;
-        const dark = qr.isDark(r, c);
-        const x = off + c * cell, y = off + r * cell;
-        ctx.fillStyle = dark ? washDark : washLight;
-        ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
-        ctx.fillStyle = dark ? pal.dark : pal.light;
-        shapePath(x + pad, y + pad, dot, opts.shape);
-        ctx.fill();
+      const dot = cell * (dotEl.value / 100);
+      const pad = (cell - dot) / 2;
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (inFinder(r, c, n)) continue;
+          ctx.fillStyle = qr.isDark(r, c) ? pal.dark : pal.light;
+          shapePath(off + c * cell + pad, off + r * cell + pad, dot, opts.shape);
+          ctx.fill();
+        }
+      }
+    } else {
+      // halftone: one sample per module, image becomes the dots
+      const k = n / area;
+      sampler.width = sampler.height = n;
+      sctx.fillStyle = '#ffffff';
+      sctx.fillRect(0, 0, n, n);
+      sctx.filter = filter;
+      sctx.imageSmoothingQuality = 'high';
+      sctx.drawImage(img, imgX * k, imgY * k, w * k, h * k);
+      sctx.filter = 'none';
+      const px = sctx.getImageData(0, 0, n, n).data;
+
+      // dot slider maps to 55..100% of the cell here, halftone needs fuller dots
+      const dot = cell * (0.55 + (dotEl.value - 25) / 35 * 0.45);
+      const pad = (cell - dot) / 2;
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (inFinder(r, c, n)) continue;
+          const i = (r * n + c) * 4;
+          ctx.fillStyle = adjust(px[i], px[i + 1], px[i + 2], qr.isDark(r, c));
+          shapePath(off + c * cell + pad, off + r * cell + pad, dot, opts.shape);
+          ctx.fill();
+        }
       }
     }
 
