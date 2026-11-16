@@ -59,7 +59,14 @@
         <div class="seg" role="radiogroup" aria-label="Look" data-group="mode">
           <button type="button" role="radio" aria-checked="true" data-value="photo">Photo</button>
           <button type="button" role="radio" aria-checked="false" data-value="halftone">Halftone</button>
+          <button type="button" role="radio" aria-checked="false" data-value="fine">Fine halftone</button>
         </div>
+      </div>
+
+      <div class="field">
+        <label for="density">Density</label>
+        <input id="density" type="range" min="0" max="20" value="0">
+        <p class="hint">More dots show more of the image. Very high density needs a sharper print and a closer scan.</p>
       </div>
 
       <div class="field">

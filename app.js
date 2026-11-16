@@ -90,6 +90,18 @@
     }
   }
 
+  function sample(size, imgX, imgY, w, h, area, filter) {
+    const k = size / area;
+    sampler.width = sampler.height = size;
+    sctx.fillStyle = '#ffffff';
+    sctx.fillRect(0, 0, size, size);
+    sctx.filter = filter;
+    sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(img, imgX * k, imgY * k, w * k, h * k);
+    sctx.filter = 'none';
+    return sctx.getImageData(0, 0, size, size).data;
+  }
+
   function clampPan() {
     if (!layout || !img) return;
     const { area } = layout;
@@ -122,6 +134,13 @@
       qr = qrcode(0, 'H');
       qr.addData(url);
       qr.make();
+      const boost = +$('density').value;
+      if (boost) {
+        const version = Math.min(40, (qr.getModuleCount() - 17) / 4 + boost);
+        qr = qrcode(version, 'H');
+        qr.addData(url);
+        qr.make();
+      }
     } catch {
       statusEl.textContent = 'That link is too long for a QR code. Try a shorter one.';
       frame.dataset.state = 'empty';
@@ -165,17 +184,37 @@
           ctx.fill();
         }
       }
+    } else if (opts.mode === 'fine') {
+      // 3x3 sub-dots per module: center carries the code, the ring shows the image
+      const m = n * 3;
+      const px = sample(m, imgX, imgY, w, h, area, filter);
+      const sub = cell / 3;
+      const dot = sub * (0.6 + (dotEl.value - 25) / 35 * 0.4);
+      const pad = (sub - dot) / 2;
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) {
+          if (inFinder(r, c, n)) continue;
+          const dark = qr.isDark(r, c);
+          for (let sr = 0; sr < 3; sr++) {
+            for (let sc = 0; sc < 3; sc++) {
+              if (sr === 1 && sc === 1) continue;
+              const R = r * 3 + sr, C = c * 3 + sc;
+              const i = (R * m + C) * 4;
+              ctx.fillStyle = `rgb(${px[i]},${px[i + 1]},${px[i + 2]})`;
+              shapePath(off + C * sub + pad, off + R * sub + pad, dot, opts.shape);
+              ctx.fill();
+            }
+          }
+          // center dot stays full size so scanners read it reliably
+          const i = ((r * 3 + 1) * m + c * 3 + 1) * 4;
+          ctx.fillStyle = adjust(px[i], px[i + 1], px[i + 2], dark);
+          shapePath(off + (c * 3 + 1) * sub, off + (r * 3 + 1) * sub, sub, opts.shape);
+          ctx.fill();
+        }
+      }
     } else {
       // halftone: one sample per module, image becomes the dots
-      const k = n / area;
-      sampler.width = sampler.height = n;
-      sctx.fillStyle = '#ffffff';
-      sctx.fillRect(0, 0, n, n);
-      sctx.filter = filter;
-      sctx.imageSmoothingQuality = 'high';
-      sctx.drawImage(img, imgX * k, imgY * k, w * k, h * k);
-      sctx.filter = 'none';
-      const px = sctx.getImageData(0, 0, n, n).data;
+      const px = sample(n, imgX, imgY, w, h, area, filter);
 
       // dot slider maps to 55..100% of the cell here, halftone needs fuller dots
       const dot = cell * (0.55 + (dotEl.value - 25) / 35 * 0.45);
@@ -263,7 +302,7 @@
     if (v !== urlEl.value) { urlEl.value = v; render(); }
   });
   fileEl.addEventListener('change', () => loadFile(fileEl.files[0]));
-  [dotEl, contrastEl, zoomEl].forEach((el) => el.addEventListener('input', render));
+  [dotEl, contrastEl, zoomEl, $('density')].forEach((el) => el.addEventListener('input', render));
 
   ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (ev) => { ev.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (ev) => { ev.preventDefault(); drop.classList.remove('over'); }));
