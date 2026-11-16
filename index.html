@@ -49,10 +49,37 @@
       </div>
 
       <div class="field">
-        <span class="label">Style</span>
-        <div class="seg" role="radiogroup" aria-label="Style">
-          <button type="button" role="radio" aria-checked="true" data-style="color">Color</button>
-          <button type="button" role="radio" aria-checked="false" data-style="mono">Mono</button>
+        <label for="zoom">Image zoom</label>
+        <input id="zoom" type="range" min="100" max="300" value="100">
+        <p class="hint">Drag the preview to move the image. <button type="button" class="link" id="reset">Reset position</button></p>
+      </div>
+
+      <div class="field">
+        <span class="label">Dots</span>
+        <div class="seg" role="radiogroup" aria-label="Dot shape" data-group="shape">
+          <button type="button" role="radio" aria-checked="true" data-value="square">Square</button>
+          <button type="button" role="radio" aria-checked="false" data-value="circle">Circle</button>
+          <button type="button" role="radio" aria-checked="false" data-value="round">Rounded</button>
+          <button type="button" role="radio" aria-checked="false" data-value="diamond">Diamond</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Corners</span>
+        <div class="seg" role="radiogroup" aria-label="Corner style" data-group="corner">
+          <button type="button" role="radio" aria-checked="true" data-value="square">Square</button>
+          <button type="button" role="radio" aria-checked="false" data-value="round">Rounded</button>
+          <button type="button" role="radio" aria-checked="false" data-value="circle">Circle</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Color</span>
+        <div class="seg" role="radiogroup" aria-label="Color" data-group="style">
+          <button type="button" role="radio" aria-checked="true" data-value="color">Full color</button>
+          <button type="button" role="radio" aria-checked="false" data-value="mono">Mono</button>
+          <button type="button" role="radio" aria-checked="false" data-value="ink">Ink</button>
+          <button type="button" role="radio" aria-checked="false" data-value="ember">Ember</button>
         </div>
       </div>
     </section>

@@ -123,6 +123,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .seg button:active { transform: scale(0.97); }
 .seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
+.seg { flex-wrap: wrap; }
+.link { font: inherit; color: var(--ink); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.link:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.frame[data-state="ready"] canvas { cursor: grab; touch-action: none; }
+.frame[data-state="ready"] canvas.dragging { cursor: grabbing; }
+
 .stage { position: sticky; top: 24px; }
 .frame {
   position: relative;
