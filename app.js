@@ -1,16 +1,24 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const urlEl = $('url'), fileEl = $('file'), drop = $('drop');
-  const dotEl = $('dot'), contrastEl = $('contrast');
+  const dotEl = $('dot'), contrastEl = $('contrast'), zoomEl = $('zoom');
   const canvas = $('out'), ctx = canvas.getContext('2d');
   const frame = $('frame'), dl = $('download'), test = $('test');
   const statusEl = $('status'), hint = $('url-hint');
-  const segButtons = document.querySelectorAll('.seg button');
 
-  let img = null;
-  let style = 'color';
   const SIZE = 1000;
   const QUIET = 4;
+  const opts = { shape: 'square', corner: 'square', style: 'color' };
+  const PALETTES = {
+    color: { dark: '#111111', light: '#ffffff', filter: '' },
+    mono: { dark: '#111111', light: '#ffffff', filter: ' grayscale(1)' },
+    ink: { dark: '#14264d', light: '#f4f6fb', filter: ' grayscale(1) sepia(0.3) hue-rotate(180deg)' },
+    ember: { dark: '#8f2410', light: '#fff6f2', filter: ' grayscale(1) sepia(0.6)' },
+  };
+
+  let img = null;
+  let pan = { x: 0, y: 0 };
+  let layout = null;
 
   function validUrl(v) {
     try {
@@ -25,9 +33,55 @@
     return v;
   }
 
-  function isFinder(r, c, n) {
-    const inBox = (r0, c0) => r >= r0 && r < r0 + 8 && c >= c0 && c < c0 + 8;
-    return inBox(0, 0) || inBox(0, n - 8) || inBox(n - 8, 0);
+  function inFinder(r, c, n) {
+    const box = (r0, c0) => r >= r0 && r < r0 + 8 && c >= c0 && c < c0 + 8;
+    return box(0, 0) || box(0, n - 8) || box(n - 8, 0);
+  }
+
+  function shapePath(x, y, s, shape) {
+    ctx.beginPath();
+    if (shape === 'circle') {
+      ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2);
+    } else if (shape === 'round') {
+      ctx.roundRect(x, y, s, s, s * 0.3);
+    } else if (shape === 'diamond') {
+      ctx.moveTo(x + s / 2, y);
+      ctx.lineTo(x + s, y + s / 2);
+      ctx.lineTo(x + s / 2, y + s);
+      ctx.lineTo(x, y + s / 2);
+      ctx.closePath();
+    } else {
+      ctx.rect(x, y, s, s);
+    }
+  }
+
+  function cornerPath(x, y, s, corner) {
+    ctx.beginPath();
+    if (corner === 'circle') ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2);
+    else if (corner === 'round') ctx.roundRect(x, y, s, s, s * 0.28);
+    else ctx.rect(x, y, s, s);
+  }
+
+  function drawFinder(x, y, cell, pal) {
+    // white separator ring, then 7 / 5 / 3 module layers
+    ctx.fillStyle = pal.light;
+    ctx.fillRect(x - cell, y - cell, cell * 9, cell * 9);
+    const layers = [[0, 7, pal.dark], [1, 5, pal.light], [2, 3, pal.dark]];
+    for (const [inset, span, color] of layers) {
+      ctx.fillStyle = color;
+      cornerPath(x + inset * cell, y + inset * cell, span * cell, opts.corner);
+      ctx.fill();
+    }
+  }
+
+  function clampPan() {
+    if (!layout || !img) return;
+    const { area } = layout;
+    const s = Math.max(area / img.width, area / img.height) * (zoomEl.value / 100);
+    const maxX = Math.max(0, (img.width * s - area) / 2);
+    const maxY = Math.max(0, (img.height * s - area) / 2);
+    pan.x = Math.min(maxX, Math.max(-maxX, pan.x));
+    pan.y = Math.min(maxY, Math.max(-maxY, pan.y));
   }
 
   function render() {
@@ -59,45 +113,49 @@
       return;
     }
 
+    const pal = PALETTES[opts.style];
     const n = qr.getModuleCount();
     const cell = SIZE / (n + QUIET * 2);
     const off = QUIET * cell;
     const area = n * cell;
+    layout = { area };
+    clampPan();
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = pal.light;
     ctx.fillRect(0, 0, SIZE, SIZE);
 
-    // image, cover-cropped into the code area
-    const s = Math.max(area / img.width, area / img.height);
+    const s = Math.max(area / img.width, area / img.height) * (zoomEl.value / 100);
     const w = img.width * s, h = img.height * s;
     ctx.save();
     ctx.beginPath();
     ctx.rect(off, off, area, area);
     ctx.clip();
-    ctx.filter = `contrast(${contrastEl.value}%)${style === 'mono' ? ' grayscale(1)' : ''}`;
-    ctx.drawImage(img, off + (area - w) / 2, off + (area - h) / 2, w, h);
+    ctx.filter = `contrast(${contrastEl.value}%)${pal.filter}`;
+    ctx.drawImage(img, off + (area - w) / 2 + pan.x, off + (area - h) / 2 + pan.y, w, h);
     ctx.restore();
     ctx.filter = 'none';
 
     const dot = cell * (dotEl.value / 100);
     const pad = (cell - dot) / 2;
+    const washDark = 'rgba(0,0,0,0.28)';
+    const washLight = 'rgba(255,255,255,0.32)';
 
     for (let r = 0; r < n; r++) {
       for (let c = 0; c < n; c++) {
+        if (inFinder(r, c, n)) continue;
         const dark = qr.isDark(r, c);
         const x = off + c * cell, y = off + r * cell;
-        if (isFinder(r, c, n)) {
-          ctx.fillStyle = dark ? '#111111' : '#ffffff';
-          ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
-          continue;
-        }
-        // light wash biases the whole module toward its value
-        ctx.fillStyle = dark ? 'rgba(0,0,0,0.28)' : 'rgba(255,255,255,0.32)';
+        ctx.fillStyle = dark ? washDark : washLight;
         ctx.fillRect(x, y, cell + 0.5, cell + 0.5);
-        ctx.fillStyle = dark ? '#111111' : '#ffffff';
-        ctx.fillRect(x + pad, y + pad, dot, dot);
+        ctx.fillStyle = dark ? pal.dark : pal.light;
+        shapePath(x + pad, y + pad, dot, opts.shape);
+        ctx.fill();
       }
     }
+
+    drawFinder(off, off, cell, pal);
+    drawFinder(off + (n - 7) * cell, off, cell, pal);
+    drawFinder(off, off + (n - 7) * cell, cell, pal);
 
     frame.dataset.state = 'ready';
     dl.disabled = false;
@@ -114,6 +172,8 @@
       const i = new Image();
       i.onload = () => {
         img = i;
+        pan = { x: 0, y: 0 };
+        zoomEl.value = 100;
         $('drop-title').textContent = 'Change image';
         $('drop-sub').textContent = file.name;
         render();
@@ -124,24 +184,61 @@
     reader.readAsDataURL(file);
   }
 
+  // drag to move the image
+  let drag = null;
+  canvas.addEventListener('pointerdown', (e) => {
+    if (frame.dataset.state !== 'ready' || drag) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+    canvas.setPointerCapture(e.pointerId);
+    canvas.classList.add('dragging');
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const k = SIZE / canvas.getBoundingClientRect().width;
+    pan.x = drag.px + (e.clientX - drag.x) * k;
+    pan.y = drag.py + (e.clientY - drag.y) * k;
+    render();
+  });
+  const endDrag = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag = null;
+    canvas.classList.remove('dragging');
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('wheel', (e) => {
+    if (frame.dataset.state !== 'ready') return;
+    e.preventDefault();
+    zoomEl.value = Math.min(300, Math.max(100, +zoomEl.value - Math.sign(e.deltaY) * 8));
+    render();
+  }, { passive: false });
+
+  $('reset').addEventListener('click', () => {
+    pan = { x: 0, y: 0 };
+    zoomEl.value = 100;
+    render();
+  });
+
   urlEl.addEventListener('input', render);
   urlEl.addEventListener('blur', () => {
     const v = normalise(urlEl.value);
     if (v !== urlEl.value) { urlEl.value = v; render(); }
   });
   fileEl.addEventListener('change', () => loadFile(fileEl.files[0]));
-  dotEl.addEventListener('input', render);
-  contrastEl.addEventListener('input', render);
+  [dotEl, contrastEl, zoomEl].forEach((el) => el.addEventListener('input', render));
 
-  ['dragenter', 'dragover'].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add('over'); }));
-  ['dragleave', 'drop'].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove('over'); }));
+  ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (ev) => { ev.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (ev) => { ev.preventDefault(); drop.classList.remove('over'); }));
   drop.addEventListener('drop', (ev) => loadFile(ev.dataTransfer.files[0]));
 
-  segButtons.forEach((b) => b.addEventListener('click', () => {
-    segButtons.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
-    style = b.dataset.style;
-    render();
-  }));
+  document.querySelectorAll('.seg[data-group]').forEach((group) => {
+    const buttons = group.querySelectorAll('button');
+    buttons.forEach((b) => b.addEventListener('click', () => {
+      buttons.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+      opts[group.dataset.group] = b.dataset.value;
+      render();
+    }));
+  });
 
   dl.addEventListener('click', () => {
     canvas.toBlob((blob) => {
