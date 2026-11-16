@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FaceQR</title>
+  <meta name="description" content="Turn any photo into a scannable QR code that opens your link.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'><rect width='8' height='8' fill='%23141613'/><rect x='1' y='1' width='3' height='3' fill='%23ff5a36'/></svg>">
+</head>
+<body>
+  <header class="bar">
+    <span class="mark" aria-hidden="true"></span>
+    <span class="brand">FaceQR</span>
+  </header>
+
+  <main class="layout">
+    <section class="controls" aria-label="Settings">
+      <h1>Your photo, <em>scannable.</em></h1>
+      <p class="lede">Drop in an image, paste a link. You get a QR code that looks like the picture and opens the link.</p>
+
+      <div class="field">
+        <label for="url">Link</label>
+        <input id="url" type="url" inputmode="url" placeholder="https://yoursite.com" autocomplete="url" spellcheck="false">
+        <p class="hint" id="url-hint">Full address, including https://</p>
+      </div>
+
+      <div class="field">
+        <span class="label">Image</span>
+        <label class="drop" id="drop" for="file">
+          <input id="file" type="file" accept="image/*">
+          <span class="drop-title" id="drop-title">Choose an image</span>
+          <span class="drop-sub" id="drop-sub">or drag it here. PNG, JPG, WebP.</span>
+        </label>
+      </div>
+
+      <div class="field row">
+        <div>
+          <label for="dot">Dot size</label>
+          <input id="dot" type="range" min="25" max="60" value="38">
+        </div>
+        <div>
+          <label for="contrast">Image contrast</label>
+          <input id="contrast" type="range" min="80" max="180" value="125">
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label">Style</span>
+        <div class="seg" role="radiogroup" aria-label="Style">
+          <button type="button" role="radio" aria-checked="true" data-style="color">Color</button>
+          <button type="button" role="radio" aria-checked="false" data-style="mono">Mono</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage" aria-label="Preview">
+      <div class="frame" id="frame" data-state="empty">
+        <canvas id="out" width="1000" height="1000" aria-label="Generated QR code"></canvas>
+        <div class="empty" id="empty">
+          <p>Your code shows up here.</p>
+          <p class="muted">Add a link and an image to start.</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="download" type="button" disabled>Download PNG</button>
+        <a class="btn ghost" id="test" href="#" target="_blank" rel="noopener" aria-disabled="true">Open link</a>
+      </div>
+      <p class="status" id="status" role="status"></p>
+    </section>
+  </main>
+
+  <footer class="foot">Runs in your browser. Images never leave your device.</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

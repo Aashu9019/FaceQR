@@ -1,0 +1,170 @@
+:root {
+  --bg: #f2f3ef;
+  --surface: #fbfbf8;
+  --ink: #141613;
+  --ink-2: #4a4e47;
+  --line: #d9dbd3;
+  --accent: #ff5a36;
+  --accent-ink: #141613;
+  --focus: #ff5a36;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111310;
+    --surface: #191b17;
+    --ink: #eceee8;
+    --ink-2: #a2a69d;
+    --line: #2b2e28;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.55 "Geist", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 clamp(16px, 4vw, 48px);
+  border-bottom: 1px solid var(--line);
+}
+.mark { width: 14px; height: 14px; background: var(--ink); box-shadow: inset 0 0 0 3px var(--ink), inset 0 0 0 7px var(--accent); }
+.brand { font-weight: 600; letter-spacing: -0.01em; }
+
+.layout {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 64px) clamp(16px, 4vw, 48px);
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(32px, 6vw, 88px);
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+h1 {
+  font-size: clamp(2.25rem, 4.6vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+h1 em { font-style: italic; font-weight: 500; color: var(--ink-2); padding-bottom: 4px; display: inline-block; }
+.lede { color: var(--ink-2); max-width: 42ch; margin: 0 0 36px; }
+
+.field { margin-bottom: 24px; display: grid; gap: 8px; }
+.field.row { grid-template-columns: 1fr 1fr; gap: 20px; }
+.field.row > div { display: grid; gap: 8px; }
+label, .label { font-size: 14px; font-weight: 500; }
+.hint { margin: 0; font-size: 13px; color: var(--ink-2); }
+.hint.error { color: #c4361a; }
+@media (prefers-color-scheme: dark) { .hint.error { color: #ff8a70; } }
+
+input[type="url"] {
+  font: 400 15px "Geist Mono", ui-monospace, monospace;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+input[type="url"]::placeholder { color: var(--ink-2); opacity: 0.75; }
+input[type="url"]:focus { border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 30%, transparent); }
+
+.drop {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 22px 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms var(--ease-out);
+}
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 30%, transparent); }
+.drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.drop:active { transform: scale(0.99); }
+.drop-title { font-weight: 500; }
+.drop-sub { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (hover: hover) and (pointer: fine) { .drop:hover { border-color: var(--ink-2); } }
+
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.seg { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); width: fit-content; }
+.seg button {
+  font: inherit; font-size: 14px; color: var(--ink-2);
+  background: transparent; border: 0; border-radius: 7px;
+  padding: 7px 16px; cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, transform 120ms var(--ease-out);
+}
+.seg button[aria-checked="true"] { background: var(--ink); color: var(--bg); }
+.seg button:active { transform: scale(0.97); }
+.seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.stage { position: sticky; top: 24px; }
+.frame {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 560px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.frame canvas { display: block; width: 100%; height: 100%; opacity: 1; transform: scale(1); transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out); }
+.frame[data-state="empty"] canvas { opacity: 0; transform: scale(0.97); }
+.empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 24px; transition: opacity 200ms ease; }
+.empty p { margin: 0; font-weight: 500; }
+.empty .muted { color: var(--ink-2); font-weight: 400; font-size: 14px; margin-top: 4px; }
+.frame[data-state="ready"] .empty { opacity: 0; pointer-events: none; }
+
+.actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.btn {
+  font: 500 15px "Geist", system-ui, sans-serif;
+  padding: 13px 22px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, opacity 160ms ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn.primary:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink)); }
+  .btn.ghost:hover { border-color: var(--ink-2); }
+}
+.status { min-height: 1.5em; font-size: 13px; color: var(--ink-2); margin: 12px 0 0; }
+
+.foot { padding: 20px clamp(16px, 4vw, 48px); font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--line); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-property: opacity, background-color, color, border-color !important; }
+  .frame[data-state="empty"] canvas { transform: none; }
+}
