@@ -71,23 +71,26 @@
     }
   }
 
-  function cornerPath(x, y, s, corner) {
-    ctx.beginPath();
-    if (corner === 'circle') ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2);
-    else if (corner === 'round') ctx.roundRect(x, y, s, s, s * 0.28);
-    else ctx.rect(x, y, s, s);
-  }
+  // Corner radii in modules per layer [outer 7, ring 5, center 3].
+  // Scanners need the 1:1:3:1:1 band ratio across most of the square,
+  // so outer layers stay mostly straight and only the center can go fully round.
+  const CORNER_RADII = {
+    square: [0, 0, 0],
+    round: [1.6, 1.1, 0.6],
+    circle: [2.2, 1.5, 1.5],
+  };
 
   function drawFinder(x, y, cell, pal) {
-    // white separator ring, then 7 / 5 / 3 module layers
     ctx.fillStyle = pal.light;
     ctx.fillRect(x - cell, y - cell, cell * 9, cell * 9);
+    const radii = CORNER_RADII[opts.corner];
     const layers = [[0, 7, pal.dark], [1, 5, pal.light], [2, 3, pal.dark]];
-    for (const [inset, span, color] of layers) {
+    layers.forEach(([inset, span, color], i) => {
       ctx.fillStyle = color;
-      cornerPath(x + inset * cell, y + inset * cell, span * cell, opts.corner);
+      ctx.beginPath();
+      ctx.roundRect(x + inset * cell, y + inset * cell, span * cell, span * cell, radii[i] * cell);
       ctx.fill();
-    }
+    });
   }
 
   function sample(size, imgX, imgY, w, h, area, filter) {
